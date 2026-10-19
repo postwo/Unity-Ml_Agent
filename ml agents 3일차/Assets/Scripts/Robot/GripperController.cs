@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Build;
 using UnityEngine;
 
 // 그리퍼를 XDrive로 실제로 열고 닫는다
@@ -99,8 +100,9 @@ public class GripperController : MonoBehaviour
         // 1. 닫기 전에 판정 (부품이 건드려지지 않은 상태)
         // 닿은 뒤에 판정하면 부품이 이밎 밀리거나 돌아가 있어 정확하지 않음
 
-        // 잡을 수 있는 것인지 아닌지 
-        // TODO PredictGrasp
+        // PredictGrasp 함수는 잡을 수 있는 것인지 아닌지 
+        // 부품을 찾았다면 predictedPart 변수에 부품이 들어가게 된다 
+        bool predictedOk = PredictGrasp(out Rigidbody predictedPart);
 
     }
 
@@ -109,6 +111,8 @@ public class GripperController : MonoBehaviour
     // out은 함수가 return 말고 값을 하나 더 돌려주는 통로 
     // 잡힐지 안잡힐지 (bool) 함수의 return 으로 돌려줌
     // 어떤 부품을 판정했는지(Rigidbody) out으로 돌려줌
+    // 그리퍼 기준 "앞,뒤,옆,시작점" 이 필요함
+    // 그리퍼가 계속 돌아갈 예쩡이니 그리퍼 기준의 값이 필요하다 
     private bool PredictGrasp(out Rigidbody part)
     {
         part = null;    
@@ -125,20 +129,120 @@ public class GripperController : MonoBehaviour
         // Vector3.right (1,0,0) x 축 방향
         // .transform.rotation * 을 곱해야 손가락 기준 방향을 월드 방향으로 바꿀 수 있음
         // normalized를 통해 길이를 1로 맞추고 , 방향만 남긴다 
+        // axis(앞) 손가락이 닫히는 방향 = 레이저를 쏘는 방향
+        // 손가락 관절은 자기 x축으로 미끄러진다 = 그 x축이 지금 월드에서 어느쪽인지를 구한다 
         Vector3 axis = (rightFinger.transform.rotation * (rightFinger.anchorRotation * Vector3.right)).normalized;
 
         // 손가락 패드면의 세로 방향, 월드 위쪽을 axis에 수직이 되게 맞춰야함
         // 일반 Vector3.up 쓰면 안되는 이유는 로봇 팔 자세에 따라 그리퍼가 조금 기울어지면 손가락 방향도 위아래로 기울어짐
         // 그래서 ProjectOnPlane로 보정해서 항상 손가락 방향과 수직인 위쪽을 돌려주도록 함
+        // up(위)  패드의 세로방향
+        // 그리퍼가 기울어져있을떈 앞과 직각이 안됨. 직각이되게끔 고쳐줘야됨
         Vector3 up = Vector3.ProjectOnPlane(Vector3.up,axis).normalized;
 
         // 손가락 패드의 가로 방향. 외적 = axis와 up 둘다에 수직인 방향
+        // side(옆) 패드의 가로방향
+        // cross = 두 방향 모두에 직각인 방향. 앞과 위를 알면 옆이나온다
         Vector3 side = Vector3.Cross(axis,up).normalized;
 
         // 손가락 사이에 중심
+        // 시작점 손가락 사이 중심. 레이저 격자의 한가운데 
         Vector3 center = attachPoint.position;
 
-        // TODO FirstContact 함수 만들기 
+        // Right, left 에서 광선을 발사
+        // a (right) b (left)
+        // 오른쪽 손가락에서 중심을햐애 레이저 9개를 쏜다
+        bool okA = FirstContact(center, axis, up, side, +1, out RaycastHit a, out Rigidbody partA);
+        // 왼쪽 손가락에서 중심을 향해 레이저 쏨 
+        bool okB = FirstContact(center, axis, up, side, -1, out RaycastHit b, out Rigidbody partB);
+
+
+        // 한쪽이라도 못맞췄거나, 양쪽이 서로 다른 부품을 맞췄으면 > 실패!
+        if(!okA || !okB || partA != partB)
+        {
+            LastGraspInfo = "실패: 손가락 사이에 부품 없음";
+            return false;
+        }
+
+        part = partA;
+
+        // a,b는 광선이 맞은 정보
+        // normal = 법선 (그 면ㅅ에서 바깥으로 수직으로 솟은 방향)
+        // 정면으로 잡혔을때는 0도, 비스듬하게 잡았을때는 각도가 커진다 
+        LastAngleRight = Vector3.Angle(a.normal, axis);
+        LastAngleLeft = Vector3.Angle(b.normal, -axis);
+
+        // point = 맞은 위치
+        dbgHitA = a.point;
+        dbgHitB = b.point;
+        
+        
+        dbgNormA = a.normal;
+        dbgNormB = b.normal;
+        dbgValid = true;
+
+        // 양쪽 모두 허용 각도 이내여야 성공 
+        bool ok = LastAngleRight <= MaxAngle && LastAngleLeft <= MaxAngle;
+        LastGraspInfo = $"{(ok ? "성공" : "실패 : 미끄러짐")} ({LastAngleRight:F1}도, {LastAngleLeft:F1}도 / 한계 {MaxAngle:F1}도";
+
+        return ok;
+
+    }
+
+    // best = 가장 가까운 맞은 지점의 정보
+    // bestPart = 그면이 속한 부품
+    // boolean 부품을 맞췄다면 true
+    private bool FirstContact(Vector3 center, Vector3 axis, Vector3 up, Vector3 side, float sideSign, out RaycastHit best, out Rigidbody bestpart)
+    {
+        best = default; // 빈 값
+        bestpart = null; // 아직 맞힌 부품 없음
+        float bestDist = float.MaxValue; // 가장 큰 수 .
+
+        // 광선 방향을 결정, 손가락이 닫혀오는 방향에서 attach point로 광선을 쏴야함
+        // -을 꼭해야 한다 
+        Vector3 dir = -sideSign * axis;
+
+        //                iv=-1    iv=0    iv=1
+        //                왼쪽     가운데   오른쪽
+        //   iu= 1  위      o        o        o
+        //   iu= 0 가운데   o        +        o       + = 중심 (attachPoint)
+        //   iu=-1  아래    o        o        o
+        for (int iu = -1; iu <= 1; iu++) // iu는 -1(위) , 0 (가운데), 1(아래)
+        {
+            for (int iv = -1; iv <= 1; iv++)
+            {
+
+                // 아래하고 같은거다 한줄로 쓰냐 풀어서 쓰냐 차이 
+                //Vector3 origin = center + up * (iu * padHalfHeight) + side * (iv * padHalfWidth) + sideSign * axis * 0.1f;
+                // 레이저의 출발점 정하기, 중심에서 시작해서 한단계씩 옮긴다 
+                Vector3 origin = center;                  // 1. 손가락 사이 중심에서 출발
+                origin += up * (iu * padHalfHeight);      // 2. 위 아래로 이동
+                origin += side * (iv * padHalfWidth);     // 3. 좌우로 이동
+                origin += sideSign * axis * 0.1f;         // 4. 손가락 바깥으로 10cm 물러나서 안쪽으로 쏜다 
+
+                // Raycast 처음 하나만 돌려줌. RaycastAll 광선이 지나는 모든 콜라이더를 돌려줌
+                // 손가락이 다른 물체에 먼저 맞았다하더라도 그 뒤의 부품까지 찾기위해서 all을 쓴다 
+
+                foreach (var h in Physics.RaycastAll(origin, dir, 0.2f, ~0, QueryTriggerInteraction.Ignore))
+                {
+                    // 맞은 콜라이더가 속한 Rigidbody (부품)
+                    Rigidbody rb = h.collider.attachedRigidbody;
+
+                    if (rb == null || !rb.CompareTag("Part") || rb == HeldPart) { continue; }
+
+                    // 지금까지의 기록보다 더 가까우면 새로 기록한다 
+                    if(h.distance < bestDist)
+                    {
+                        bestDist = h.distance; // 가장 가까운 거리 갱신
+                        best = h; // 그 지점 정보 갱신
+                        bestpart = rb; // 부품 갱신 
+                    }
+                }
+
+            }
+        }
+
+        return bestpart != null; // 9개 광선중 하나라도 부품에 맞았다면 true
     }
 
 
