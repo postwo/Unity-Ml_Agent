@@ -11832,6 +11832,7 @@ GameObject:
   - component: {fileID: 1626311509}
   - component: {fileID: 1626311508}
   - component: {fileID: 1626311507}
+  - component: {fileID: 1626311510}
   m_Layer: 0
   m_Name: left_gripper
   m_TagString: Untagged
@@ -11951,6 +11952,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.Robotics.UrdfImporter::Unity.Robotics.UrdfImporter.UrdfLink
   IsBaseLink: 0
+--- !u!114 &1626311510
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1626311505}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e33bddf2ef807b248b76fcf052938b9d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FingerContact
+  holdTime: 0.1
 --- !u!1 &1650256076
 GameObject:
   m_ObjectHideFlags: 0
@@ -12075,6 +12089,7 @@ GameObject:
   - component: {fileID: 1664621157}
   - component: {fileID: 1664621156}
   - component: {fileID: 1664621155}
+  - component: {fileID: 1664621158}
   m_Layer: 0
   m_Name: right_gripper
   m_TagString: Untagged
@@ -12194,6 +12209,36 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.Robotics.UrdfImporter::Unity.Robotics.UrdfImporter.UrdfLink
   IsBaseLink: 0
+--- !u!114 &1664621158
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1664621153}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09ac5ebf764957141874010230323c24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GripperController
+  rightFinger: {fileID: 0}
+  leftFinger: {fileID: 0}
+  rightContact: {fileID: 0}
+  leftContact: {fileID: 0}
+  rightOpen: -0.005
+  rightClose: 0.005
+  leftOpen: 0.005
+  leftClose: -0.005
+  moveTime: 0.5
+  extraColseTime: 0.5
+  attachPoint: {fileID: 0}
+  useGraspCheck: 1
+  frictionCofficient: 0.36
+  padHalfHeight: 0.006
+  padHalfWidth: 0.006
+  slipBackOff: 0.001
+  restoreCollisionDelay: 0.3
+  showTestButtons: 1
 --- !u!1 &1679357781
 GameObject:
   m_ObjectHideFlags: 8
@@ -13501,6 +13546,7 @@ GameObject:
   - component: {fileID: 2064138739}
   - component: {fileID: 2064138738}
   - component: {fileID: 2064138737}
+  - component: {fileID: 2064138740}
   m_Layer: 0
   m_Name: gripper_base
   m_TagString: Untagged
@@ -13622,6 +13668,36 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.Robotics.UrdfImporter::Unity.Robotics.UrdfImporter.UrdfLink
   IsBaseLink: 0
+--- !u!114 &2064138740
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2064138735}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09ac5ebf764957141874010230323c24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GripperController
+  rightFinger: {fileID: 0}
+  leftFinger: {fileID: 0}
+  rightContact: {fileID: 0}
+  leftContact: {fileID: 0}
+  rightOpen: -0.005
+  rightClose: 0.005
+  leftOpen: 0.005
+  leftClose: -0.005
+  moveTime: 0.5
+  extraColseTime: 0.5
+  attachPoint: {fileID: 0}
+  useGraspCheck: 1
+  frictionCofficient: 0.36
+  padHalfHeight: 0.006
+  padHalfWidth: 0.006
+  slipBackOff: 0.001
+  restoreCollisionDelay: 0.3
+  showTestButtons: 1
 --- !u!1 &2072967274
 GameObject:
   m_ObjectHideFlags: 0
