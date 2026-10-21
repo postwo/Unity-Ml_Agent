@@ -1,3 +1,18 @@
+﻿# Unity
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Ll]ogs/
+[Bb]uild/
+[Bb]uilds/
+.vs/
+.idea/
+*.csproj
+*.sln
+*.user
+# Python
+__pycache__/
+*.egg-info/
 
 # ML-Agents 학습 타이머 로그 (자동 생성)
 **/Assets/ML-Agents/Timers/
