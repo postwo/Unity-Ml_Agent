@@ -7,7 +7,7 @@ using UnityEngine;
 //3.부품 찾기
 //4.집어서 옮기기
 //5.테스트 : 부품 원래위치로 되돌리기, OnGUI
-public class NewMonoBehaviourScript : MonoBehaviour
+public class PickPlaceSequence : MonoBehaviour
 {
     #region 0.설정과 상태
 
